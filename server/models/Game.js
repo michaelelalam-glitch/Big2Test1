@@ -7,6 +7,10 @@ const gameSchema = new mongoose.Schema({
         unique: true,
         uppercase: true
     },
+    roomName: {
+        type: String,
+        default: 'Game Room'
+    },
     creator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

@@ -52,7 +52,7 @@ exports.getGame = async (req, res, next) => {
 // @route   POST /api/games/create
 exports.createGame = async (req, res, next) => {
     try {
-        const { maxPlayers, aiEnabled, turnTimeout } = req.body;
+        const { roomName, maxPlayers, aiEnabled, turnTimeout } = req.body;
 
         let roomCode;
         let isUnique = false;
@@ -65,6 +65,7 @@ exports.createGame = async (req, res, next) => {
 
         const game = await Game.create({
             roomCode,
+            roomName: roomName || `${req.user.username}'s Game`,
             creator: req.user._id,
             players: [{
                 userId: req.user._id,

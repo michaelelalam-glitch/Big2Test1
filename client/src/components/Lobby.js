@@ -37,7 +37,9 @@ function Lobby({ user, socket, onJoinGame, onLogout }) {
       const response = await axios.get(`${API_URL}/api/games`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setGames(response.data.filter(g => g.status === 'waiting'));
+      // Server returns { success: true, count: n, games: [...] }
+      const gamesList = response.data.games || response.data;
+      setGames(Array.isArray(gamesList) ? gamesList.filter(g => g.status === 'waiting') : []);
     } catch (err) {
       console.error('Failed to fetch games:', err);
     }
@@ -45,8 +47,9 @@ function Lobby({ user, socket, onJoinGame, onLogout }) {
 
   const fetchLeaderboard = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/leaderboard`);
-      setLeaderboard(response.data.slice(0, 10));
+      const response = await axios.get(`${API_URL}/api/user/leaderboard`);
+      const leaders = response.data.leaderboard || response.data;
+      setLeaderboard(Array.isArray(leaders) ? leaders.slice(0, 10) : []);
     } catch (err) {
       console.error('Failed to fetch leaderboard:', err);
     }
@@ -67,10 +70,13 @@ function Lobby({ user, socket, onJoinGame, onLogout }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      onJoinGame(response.data._id);
+      // Server returns { success: true, game: {...} }
+      const gameId = response.data.game?._id || response.data._id;
+      onJoinGame(gameId);
       setShowCreate(false);
       setRoomName('');
     } catch (err) {
+      console.error('Create game error:', err);
       alert(err.response?.data?.message || 'Failed to create game');
     } finally {
       setLoading(false);
@@ -144,13 +150,17 @@ function Lobby({ user, socket, onJoinGame, onLogout }) {
         <div className="leaderboard-section">
           <h2>🏆 Leaderboard</h2>
           <div className="leaderboard-list">
-            {leaderboard.map((player, index) => (
-              <div key={player._id} className="leaderboard-item">
-                <span className="rank">#{index + 1}</span>
-                <span className="username">{player.username}</span>
-                <span className="wins">{player.wins} wins</span>
-              </div>
-            ))}
+            {leaderboard.length === 0 ? (
+              <p>No players yet</p>
+            ) : (
+              leaderboard.map((player, index) => (
+                <div key={player._id} className="leaderboard-item">
+                  <span className="rank">#{index + 1}</span>
+                  <span className="username">{player.username}</span>
+                  <span className="wins">{player.stats?.gamesWon || 0} wins</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
