@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
@@ -67,6 +68,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/user', userRoutes);
 
+// Serve static files from React app in production
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../client/build')));
+    
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    });
+}
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     gameHandler(io, socket);
@@ -74,14 +84,6 @@ io.on('connection', (socket) => {
 
 // Error handler (must be last)
 app.use(errorHandler);
-
-// 404 handler
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
-});
 
 // Start server
 const PORT = process.env.PORT || 3001;

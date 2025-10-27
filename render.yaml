@@ -1,9 +1,9 @@
 services:
-  # Backend API and WebSocket Server
+  # Backend API and WebSocket Server with React Frontend
   - type: web
     name: big2-multiplayer-server
     env: node
-    buildCommand: npm install
+    buildCommand: npm install && cd client && npm install && npm run build && cd ..
     startCommand: npm start
     envVars:
       - key: NODE_ENV
