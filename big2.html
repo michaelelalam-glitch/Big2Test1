@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big Two (大老二) - Card Game v2.0</title>
+    <style>
+        /* Updated: Turn order fix and notification positioning v2.0 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #4a6741);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-container {
+            flex: 1;
+            display: grid;
+            grid-template-areas: 
+                "north north north"
+                "west center east"
+                "south south south";
+            grid-template-rows: 1fr 2fr 1fr;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 10px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .player-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            border: 2px solid transparent;
+        }
+
+        .player-area.active {
+            border-color: #f1c40f;
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+        }
+
+        .player-north { grid-area: north; }
+        .player-west { 
+            grid-area: west; 
+            transform: rotate(-90deg);
+        }
+        .player-east { 
+            grid-area: east;
+            transform: rotate(90deg);
+        }
+        .player-south { grid-area: south; }
+
+        .center-area {
+            grid-area: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .play-area {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed #fff;
+            border-radius: 10px;
+            min-height: 120px;
+            min-width: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .player-info {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .card-count {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .hand {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .card {
+            width: 50px;
+            height: 70px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: black;
+            font-size: 10px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .card.selected {
+            transform: translateY(-10px);
+            border-color: #f1c40f;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.8);
+        }
+
+        .card.red {
+            color: #e74c3c;
+        }
+
+        .card.black {
+            color: #2c3e50;
+        }
+
+        .card-back {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+        }
+
+        .suit {
+            font-size: 12px;
+        }
+
+        .rank {
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        .btn.primary {
+            background: #27ae60;
+        }
+
+        .btn.primary:hover {
+            background: #229954;
+        }
+
+        .btn.danger {
+            background: #e74c3c;
+        }
+
+        .btn.danger:hover {
+            background: #c0392b;
+        }
+
+        .game-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .scoreboard {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            min-width: 200px;
+        }
+
+        .scoreboard h3 {
+            margin-bottom: 10px;
+            text-align: center;
+            color: #f1c40f;
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .status-message {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            max-width: 200px;
+            border-left: 4px solid #f1c40f;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-message.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .selected-cards {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            min-height: 80px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #2c3e50;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            color: #f1c40f;
+            margin-bottom: 20px;
+        }
+
+        .modal p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-areas: 
+                    "north"
+                    "center"
+                    "south";
+                grid-template-rows: auto 1fr auto;
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+
+            .player-west, .player-east {
+                display: none;
+            }
+
+            .card {
+                width: 40px;
+                height: 56px;
+                font-size: 8px;
+            }
+
+            .scoreboard {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 10px;
+            }
+        }
+
+        .combo-info {
+            font-size: 11px;
+            color: #f39c12;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        .last-play {
+            font-size: 11px;
+            color: #95a5a6;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- North Player (AI) - Player 2 for clockwise order -->
+        <div class="player-area player-north" id="player-2">
+            <div class="player-info">
+                <div class="player-name">North Player</div>
+                <div class="card-count">Cards: <span id="count-2">13</span></div>
+            </div>
+            <div class="hand" id="hand-2"></div>
+        </div>
+
+        <!-- West Player (AI) - Player 1 for clockwise order -->
+        <div class="player-area player-west" id="player-1">
+            <div class="player-info">
+                <div class="player-name">West Player</div>
+                <div class="card-count">Cards: <span id="count-1">13</span></div>
+            </div>
+            <div class="hand" id="hand-1"></div>
+        </div>
+
+        <!-- Center Area -->
+        <div class="center-area">
+            <div class="game-info">
+                <div>Round: <span id="round-number">1</span></div>
+                <div>Turn: <span id="current-turn">Starting...</span></div>
+                <div class="last-play" id="last-play">No cards played yet</div>
+            </div>
+
+            <div class="scoreboard">
+                <h3>Scoreboard</h3>
+                <div class="score-item">
+                    <span>You (South):</span>
+                    <span id="score-0">0</span>
+                </div>
+                <div class="score-item">
+                    <span>West:</span>
+                    <span id="score-1">0</span>
+                </div>
+                <div class="score-item">
+                    <span>North:</span>
+                    <span id="score-2">0</span>
+                </div>
+                <div class="score-item">
+                    <span>East:</span>
+                    <span id="score-3">0</span>
+                </div>
+            </div>
+
+            <div class="selected-cards" id="selected-cards">
+                <div style="color: #95a5a6;">Select cards to play</div>
+            </div>
+
+            <div class="play-area" id="play-area">
+                <div style="color: #95a5a6;">Current trick will appear here</div>
+            </div>
+
+            <div class="combo-info" id="combo-info"></div>
+
+            <div class="controls">
+                <button class="btn primary" id="play-btn" disabled>Play Cards</button>
+                <button class="btn" id="pass-btn" disabled>Pass</button>
+                <button class="btn" id="clear-btn">Clear Selection</button>
+                <button class="btn danger" id="new-game-btn">New Game</button>
+                <button class="btn" id="test-btn" style="background: #8e44ad;">Test (4 AI)</button>
+            </div>
+
+            <div class="status-message" id="status-message">Click "New Game" to start playing!</div>
+        </div>
+
+        <!-- East Player (AI) -->
+        <div class="player-area player-east" id="player-3">
+            <div class="player-info">
+                <div class="player-name">East Player</div>
+                <div class="card-count">Cards: <span id="count-3">13</span></div>
+            </div>
+            <div class="hand" id="hand-3"></div>
+        </div>
+
+        <!-- South Player (Human) -->
+        <div class="player-area player-south" id="player-0">
+            <div class="player-info">
+                <div class="player-name">You</div>
+                <div class="card-count">Cards: <span id="count-0">13</span></div>
+            </div>
+            <div class="hand" id="hand-0"></div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal" id="game-over-modal">
+        <div class="modal-content">
+            <h2>Game Over!</h2>
+            <p id="game-over-message"></p>
+            <button class="btn primary" onclick="startNewGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Card class and game constants
+        class Card {
+            constructor(suit, rank) {
+                this.suit = suit;
+                this.rank = rank;
+                this.selected = false;
+            }
+
+            // Big Two card values: 2 is highest (15), then A (14), K (13)... 3 is lowest (3)
+            getValue() {
+                const values = {
+                    '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
+                    'J': 11, 'Q': 12, 'K': 13, 'A': 14, '2': 15
+                };
+                return values[this.rank];
+            }
+
+            // Suit values: Spade (4) > Heart (3) > Club (2) > Diamond (1)
+            getSuitValue() {
+                const suitValues = { '♦': 1, '♣': 2, '♥': 3, '♠': 4 };
+                return suitValues[this.suit];
+            }
+
+            // Overall card comparison value (for sorting)
+            getCompareValue() {
+                return this.getValue() * 10 + this.getSuitValue();
+            }
+
+            isRed() {
+                return this.suit === '♥' || this.suit === '♦';
+            }
+
+            toString() {
+                return `${this.rank}${this.suit}`;
+            }
+
+            toElement() {
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${this.isRed() ? 'red' : 'black'}`;
+                cardEl.innerHTML = `
+                    <div class="suit">${this.suit}</div>
+                    <div class="rank">${this.rank}</div>
+                    <div class="suit" style="transform: rotate(180deg);">${this.suit}</div>
+                `;
+                return cardEl;
+            }
+        }
+
+        // Game state
+        class BigTwoGame {
+            constructor() {
+                this.players = [[], [], [], []]; // 4 players (0 = human, 1-3 = AI)
+                this.currentPlayer = 0;
+                this.currentTrick = [];
+                this.lastPlay = null;
+                this.lastPlayType = null;
+                this.lastPlayPlayer = -1; // Track who played the last cards
+                this.selectedCards = [];
+                this.scores = [0, 0, 0, 0];
+                this.round = 1;
+                this.gameStarted = false;
+                this.trickStartPlayer = 0;
+                this.consecutivePasses = 0;
+                this.testMode = false;
+                
+                this.setupEventListeners();
+                this.updateDisplay();
+            }
+
+            // Create and shuffle deck
+            createDeck() {
+                const suits = ['♠', '♥', '♣', '♦'];
+                const ranks = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2'];
+                const deck = [];
+
+                for (const suit of suits) {
+                    for (const rank of ranks) {
+                        deck.push(new Card(suit, rank));
+                    }
+                }
+
+                // Fisher-Yates shuffle
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+
+                return deck;
+            }
+
+            // Deal cards to players
+            dealCards(findFirstPlayer = true) {
+                const deck = this.createDeck();
+                this.players = [[], [], [], []];
+                
+                for (let i = 0; i < 52; i++) {
+                    this.players[i % 4].push(deck[i]);
+                }
+
+                // Sort each player's hand
+                for (let i = 0; i < 4; i++) {
+                    this.players[i].sort((a, b) => a.getCompareValue() - b.getCompareValue());
+                }
+
+                // Find player with 3♦ to start (only for first round)
+                if (findFirstPlayer) {
+                    for (let p = 0; p < 4; p++) {
+                        for (const card of this.players[p]) {
+                            if (card.rank === '3' && card.suit === '♦') {
+                                this.currentPlayer = p;
+                                this.trickStartPlayer = p;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Get combination type and validate
+            getCombinationType(cards) {
+                if (!cards || cards.length === 0) return null;
+                
+                const sortedCards = [...cards].sort((a, b) => a.getValue() - b.getValue());
+                
+                if (cards.length === 1) {
+                    return { type: 'single', strength: cards[0].getCompareValue() };
+                }
+                
+                if (cards.length === 2) {
+                    if (sortedCards[0].getValue() === sortedCards[1].getValue()) {
+                        return { type: 'pair', strength: sortedCards[1].getCompareValue() };
+                    }
+                    return null;
+                }
+                
+                if (cards.length === 3) {
+                    if (sortedCards[0].getValue() === sortedCards[1].getValue() && 
+                        sortedCards[1].getValue() === sortedCards[2].getValue()) {
+                        return { type: 'triple', strength: sortedCards[2].getCompareValue() };
+                    }
+                    return null;
+                }
+                
+                if (cards.length === 5) {
+                    return this.getFiveCardType(sortedCards);
+                }
+                
+                return null;
+            }
+
+            getFiveCardType(sortedCards) {
+                const values = sortedCards.map(card => card.getValue());
+                const suits = sortedCards.map(card => card.suit);
+                const valueCounts = {};
+                
+                for (const value of values) {
+                    valueCounts[value] = (valueCounts[value] || 0) + 1;
+                }
+                
+                const counts = Object.values(valueCounts).sort((a, b) => b - a);
+                const isFlush = suits.every(suit => suit === suits[0]);
+                
+                // Check for straight 
+                let isStraight = false;
+                let straightHigh = 0;
+                
+                // Convert to string representation to check special cases
+                const valueStr = values.join(',');
+                
+                // Special case: A-2-3-4-5 (weakest straight)
+                if (valueStr === '3,4,5,14,15') {
+                    isStraight = true;
+                    straightHigh = 5; // The high card is 5 in A-2-3-4-5
+                }
+                // Special case: 10-J-Q-K-A (strongest straight)  
+                else if (valueStr === '10,11,12,13,14') {
+                    isStraight = true;
+                    straightHigh = 14; // A is the high card
+                }
+                // Normal straights (consecutive values)
+                else if (values[4] - values[0] === 4 && new Set(values).size === 5) {
+                    isStraight = true;
+                    straightHigh = values[4];
+                }
+                
+                if (isStraight && isFlush) {
+                    return { type: 'straight-flush', strength: straightHigh * 10 + sortedCards[4].getSuitValue(), rank: 5 };
+                }
+                
+                if (counts[0] === 4) {
+                    const fourValue = Object.keys(valueCounts).find(k => valueCounts[k] === 4);
+                    return { type: 'four-kind', strength: fourValue * 10, rank: 4 };
+                }
+                
+                if (counts[0] === 3 && counts[1] === 2) {
+                    const threeValue = Object.keys(valueCounts).find(k => valueCounts[k] === 3);
+                    return { type: 'full-house', strength: threeValue * 10, rank: 3 };
+                }
+                
+                if (isFlush) {
+                    return { type: 'flush', strength: sortedCards[4].getCompareValue(), rank: 2 };
+                }
+                
+                if (isStraight) {
+                    return { type: 'straight', strength: straightHigh * 10 + sortedCards[4].getSuitValue(), rank: 1 };
+                }
+                
+                return null;
+            }
+
+            // Check if a play is valid
+            isValidPlay(cards) {
+                if (!cards || cards.length === 0) return false;
+                
+                const playType = this.getCombinationType(cards);
+                if (!playType) return false;
+
+                // First play must include 3♦ or be after everyone passes
+                if (!this.lastPlay) {
+                    if (this.currentPlayer === this.trickStartPlayer && !this.gameStarted) {
+                        return cards.some(card => card.rank === '3' && card.suit === '♦');
+                    }
+                    return true;
+                }
+
+                // Must be same LENGTH first
+                if (cards.length !== this.lastPlay.length) {
+                    return false;
+                }
+
+                // For 5-card hands, must be same TYPE or higher rank type
+                if (cards.length === 5) {
+                    // Check if same type
+                    if (playType.type === this.lastPlayType.type) {
+                        return playType.strength > this.lastPlayType.strength;
+                    }
+                    // If different type, can only beat if higher rank
+                    return playType.rank > this.lastPlayType.rank;
+                }
+
+                // For non-5-card hands, must match exact type
+                if (this.lastPlayType.type !== playType.type) {
+                    return false;
+                }
+
+                return playType.strength > this.lastPlayType.strength;
+            }
+
+            // Play cards
+            playCards(playerIndex, cards) {
+                if (!this.isValidPlay(cards)) return false;
+
+                // Remove cards from player's hand
+                for (const card of cards) {
+                    const index = this.players[playerIndex].indexOf(card);
+                    if (index !== -1) {
+                        this.players[playerIndex].splice(index, 1);
+                    }
+                }
+
+                // Update game state
+                this.lastPlay = [...cards];
+                this.lastPlayType = this.getCombinationType(cards);
+                this.lastPlayPlayer = playerIndex; // Track who played these cards
+                this.currentTrick.push({ player: playerIndex, cards: [...cards] });
+                this.consecutivePasses = 0;
+                
+                if (!this.gameStarted) this.gameStarted = true;
+
+                // Check if player won the round
+                if (this.players[playerIndex].length === 0) {
+                    this.endRound(playerIndex);
+                    return true;
+                }
+
+                // Next player
+                this.currentPlayer = (this.currentPlayer + 1) % 4;
+                console.log(`Turn advances: Player ${playerIndex} played -> Next: Player ${this.currentPlayer} (${this.getPlayerName(this.currentPlayer)})`);
+                this.updateDisplay();
+                return true;
+            }
+
+            // Player passes
+            pass(playerIndex) {
+                if (this.currentPlayer !== playerIndex) return false;
+                
+                console.log(`Player ${playerIndex} (${this.getPlayerName(playerIndex)}) passed. Consecutive passes: ${this.consecutivePasses + 1}`);
+                this.consecutivePasses++;
+                
+                // If 3 consecutive passes, the last player to play starts new trick
+                if (this.consecutivePasses >= 3) {
+                    console.log(`3 passes! New trick starts. Last player who played: ${this.lastPlayPlayer}`);
+                    this.startNewTrick();
+                } else {
+                    this.currentPlayer = (this.currentPlayer + 1) % 4;
+                    console.log(`Next player: ${this.currentPlayer} (${this.getPlayerName(this.currentPlayer)})`);
+                }
+                
+                this.updateDisplay();
+                return true;
+            }
+
+            // Start new trick
+            startNewTrick() {
+                console.log(`=== NEW TRICK STARTING ===`);
+                console.log(`Last player who played cards: ${this.lastPlayPlayer} (${this.getPlayerName(this.lastPlayPlayer)})`);
+                
+                this.currentTrick = [];
+                this.lastPlay = null;
+                this.lastPlayType = null;
+                this.consecutivePasses = 0;
+                
+                // The player who played the last cards starts the new trick
+                if (this.lastPlayPlayer >= 0) {
+                    this.currentPlayer = this.lastPlayPlayer;
+                    this.trickStartPlayer = this.lastPlayPlayer;
+                    console.log(`New trick started by: ${this.currentPlayer} (${this.getPlayerName(this.currentPlayer)})`);
+                }
+                
+                this.lastPlayPlayer = -1; // Reset for new trick
+            }
+
+            // End round and calculate scores
+            endRound(winner) {
+                const roundScores = [0, 0, 0, 0];
+                
+                for (let p = 0; p < 4; p++) {
+                    if (p !== winner) {
+                        const cardsLeft = this.players[p].length;
+                        let points;
+                        if (cardsLeft <= 4) {
+                            points = cardsLeft;
+                        } else if (cardsLeft <= 9) {
+                            points = cardsLeft * 2;
+                        } else {
+                            points = cardsLeft * 3;
+                        }
+                        this.scores[p] += points;
+                        roundScores[p] = points;
+                    }
+                }
+
+                this.showStatus(`Round ${this.round} won by ${this.getPlayerName(winner)}!`);
+                
+                // Check for game end (any player over 100 points)
+                if (Math.max(...this.scores) >= 100) {
+                    this.endGame();
+                } else {
+                    this.round++;
+                    setTimeout(() => {
+                        // Winner of the previous round starts the next round
+                        const nextRoundStarter = winner;
+                        this.dealCards(false); // Don't search for 3♦ in subsequent rounds
+                        this.currentPlayer = nextRoundStarter;
+                        this.trickStartPlayer = nextRoundStarter;
+                        this.resetRound();
+                        this.updateDisplay();
+                        this.showStatus(`Round ${this.round} started! ${this.getPlayerName(nextRoundStarter)} (previous winner) goes first.`);
+                        // Continue AI play if in test mode or if AI's turn
+                        if (this.testMode || this.currentPlayer !== 0) {
+                            setTimeout(() => this.processAITurn(), 1000);
+                        }
+                    }, 3000);
+                }
+            }
+
+            // End game
+            endGame() {
+                const lowestScore = Math.min(...this.scores);
+                const winner = this.scores.indexOf(lowestScore);
+                
+                document.getElementById('game-over-message').innerHTML = 
+                    `${this.getPlayerName(winner)} wins with ${lowestScore} points!<br><br>Final Scores:<br>` +
+                    this.scores.map((score, i) => `${this.getPlayerName(i)}: ${score} points`).join('<br>');
+                
+                document.getElementById('game-over-modal').style.display = 'flex';
+            }
+
+            // Reset for new round
+            resetRound() {
+                this.currentTrick = [];
+                this.lastPlay = null;
+                this.lastPlayType = null;
+                this.lastPlayPlayer = -1;
+                this.selectedCards = [];
+                this.consecutivePasses = 0;
+                this.gameStarted = false;
+            }
+
+            // Get player name
+            getPlayerName(playerIndex) {
+                const names = ['You (South)', 'West Player', 'North Player', 'East Player'];
+                return names[playerIndex];
+            }
+
+            // AI logic
+            getAIPlay(playerIndex) {
+                const hand = this.players[playerIndex];
+                if (hand.length === 0) return null;
+
+                // If starting new trick, AI prefers 5-card combos, then pairs, then singles
+                if (!this.lastPlay) {
+                    // Look for 5-card combinations
+                    const fiveCardPlay = this.findBestFiveCardCombo(hand);
+                    if (fiveCardPlay) return fiveCardPlay;
+
+                    // Look for pairs
+                    const pairPlay = this.findLowestPair(hand);
+                    if (pairPlay) return pairPlay;
+
+                    // Play lowest single
+                    return [hand[0]];
+                }
+
+                // Try to beat the last play
+                const validPlays = this.findValidPlays(hand, this.lastPlayType);
+                if (validPlays.length === 0) return null; // Must pass
+
+                // Defensive strategy: if opponent has few cards, play high
+                const minOpponentCards = Math.min(
+                    ...this.players.map((p, i) => i !== playerIndex ? p.length : Infinity)
+                );
+
+                if (minOpponentCards <= 3) {
+                    return validPlays[validPlays.length - 1]; // Play highest
+                } else if (minOpponentCards <= 5 && Math.random() < 0.5) {
+                    return validPlays[Math.floor(validPlays.length / 2)]; // Play medium
+                } else {
+                    return validPlays[0]; // Play lowest
+                }
+            }
+
+            findValidPlays(hand, lastPlayType) {
+                const validPlays = [];
+                
+                if (lastPlayType.type === 'single') {
+                    for (const card of hand) {
+                        if (card.getCompareValue() > lastPlayType.strength) {
+                            validPlays.push([card]);
+                        }
+                    }
+                } else if (lastPlayType.type === 'pair') {
+                    const pairs = this.findAllPairs(hand);
+                    for (const pair of pairs) {
+                        const pairType = this.getCombinationType(pair);
+                        if (pairType.strength > lastPlayType.strength) {
+                            validPlays.push(pair);
+                        }
+                    }
+                } else if (lastPlayType.type === 'triple') {
+                    const triples = this.findAllTriples(hand);
+                    for (const triple of triples) {
+                        const tripleType = this.getCombinationType(triple);
+                        if (tripleType.strength > lastPlayType.strength) {
+                            validPlays.push(triple);
+                        }
+                    }
+                } else if (lastPlayType.type.includes('-') || ['straight', 'flush', 'full-house', 'four-kind', 'straight-flush'].includes(lastPlayType.type)) {
+                    const fiveCards = this.findAllFiveCardCombos(hand);
+                    for (const combo of fiveCards) {
+                        const comboType = this.getCombinationType(combo);
+                        if (comboType && this.isValidPlay(combo)) {
+                            validPlays.push(combo);
+                        }
+                    }
+                }
+
+                return validPlays;
+            }
+
+            findAllPairs(hand) {
+                const pairs = [];
+                for (let i = 0; i < hand.length - 1; i++) {
+                    for (let j = i + 1; j < hand.length; j++) {
+                        if (hand[i].getValue() === hand[j].getValue()) {
+                            pairs.push([hand[i], hand[j]]);
+                        }
+                    }
+                }
+                return pairs;
+            }
+
+            findAllTriples(hand) {
+                const triples = [];
+                for (let i = 0; i < hand.length - 2; i++) {
+                    for (let j = i + 1; j < hand.length - 1; j++) {
+                        for (let k = j + 1; k < hand.length; k++) {
+                            if (hand[i].getValue() === hand[j].getValue() && 
+                                hand[j].getValue() === hand[k].getValue()) {
+                                triples.push([hand[i], hand[j], hand[k]]);
+                            }
+                        }
+                    }
+                }
+                return triples;
+            }
+
+            findAllFiveCardCombos(hand) {
+                const combos = [];
+                // This is a simplified version - could be expanded for better AI
+                for (let i = 0; i < hand.length - 4; i++) {
+                    for (let j = i + 1; j < hand.length - 3; j++) {
+                        for (let k = j + 1; k < hand.length - 2; k++) {
+                            for (let l = k + 1; l < hand.length - 1; l++) {
+                                for (let m = l + 1; m < hand.length; m++) {
+                                    const combo = [hand[i], hand[j], hand[k], hand[l], hand[m]];
+                                    if (this.getCombinationType(combo)) {
+                                        combos.push(combo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return combos;
+            }
+
+            findLowestPair(hand) {
+                const pairs = this.findAllPairs(hand);
+                return pairs.length > 0 ? pairs[0] : null;
+            }
+
+            findBestFiveCardCombo(hand) {
+                const combos = this.findAllFiveCardCombos(hand);
+                return combos.length > 0 ? combos[0] : null;
+            }
+
+            // Event listeners
+            setupEventListeners() {
+                document.getElementById('new-game-btn').addEventListener('click', () => this.startNewGame());
+                document.getElementById('play-btn').addEventListener('click', () => this.playSelectedCards());
+                document.getElementById('pass-btn').addEventListener('click', () => this.playerPass());
+                document.getElementById('clear-btn').addEventListener('click', () => this.clearSelection());
+                document.getElementById('test-btn').addEventListener('click', () => this.startTestMode());
+                
+                // Double-tap to dismiss status message
+                let tapCount = 0;
+                let tapTimer;
+                document.getElementById('status-message').addEventListener('click', () => {
+                    tapCount++;
+                    if (tapCount === 1) {
+                        tapTimer = setTimeout(() => {
+                            tapCount = 0;
+                        }, 300);
+                    } else if (tapCount === 2) {
+                        clearTimeout(tapTimer);
+                        tapCount = 0;
+                        document.getElementById('status-message').classList.add('hidden');
+                    }
+                });
+            }
+
+            startTestMode() {
+                this.testMode = true;
+                this.startNewGame();
+                this.showStatus('Test Mode: 4 AI players - Watch them play!');
+                setTimeout(() => this.processAITurn(), 1000);
+            }
+
+            startNewGame() {
+                this.players = [[], [], [], []];
+                this.scores = [0, 0, 0, 0];
+                this.round = 1;
+                this.selectedCards = [];
+                this.currentTrick = [];
+                this.lastPlay = null;
+                this.lastPlayType = null;
+                this.lastPlayPlayer = -1;
+                this.gameStarted = false;
+                this.consecutivePasses = 0;
+                this.testMode = false;
+                
+                document.getElementById('game-over-modal').style.display = 'none';
+                
+                this.dealCards();
+                this.updateDisplay();
+                this.showStatus(`Game started! ${this.getPlayerName(this.currentPlayer)} goes first.`);
+                
+                if (this.currentPlayer !== 0) {
+                    setTimeout(() => this.processAITurn(), 1000);
+                }
+            }
+
+            playSelectedCards() {
+                if (this.selectedCards.length === 0 || this.currentPlayer !== 0) return;
+
+                if (this.playCards(0, this.selectedCards)) {
+                    this.selectedCards = [];
+                    this.showStatus('Good play!');
+                    
+                    if (this.players[0].length === 0) return; // Round ended
+                    
+                    setTimeout(() => this.processAITurn(), 1000);
+                } else {
+                    this.showStatus('Invalid play! Try again.');
+                }
+            }
+
+            playerPass() {
+                if (this.currentPlayer !== 0) return;
+                
+                if (this.pass(0)) {
+                    this.showStatus('You passed.');
+                    setTimeout(() => this.processAITurn(), 1000);
+                } else {
+                    this.showStatus('Cannot pass right now.');
+                }
+            }
+
+            processAITurn() {
+                // In test mode, player 0 is also AI
+                if (!this.testMode && this.currentPlayer === 0) return; // Human player's turn
+                
+                const aiPlay = this.getAIPlay(this.currentPlayer);
+                
+                if (aiPlay) {
+                    setTimeout(() => {
+                        this.playCards(this.currentPlayer, aiPlay);
+                        this.showStatus(`${this.getPlayerName(this.currentPlayer)} played ${aiPlay.length} card(s).`);
+                        
+                        if (this.players.every(p => p.length > 0)) {
+                            setTimeout(() => this.processAITurn(), 1500);
+                        }
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        this.pass(this.currentPlayer);
+                        this.showStatus(`${this.getPlayerName(this.currentPlayer)} passed.`);
+                        setTimeout(() => this.processAITurn(), 1000);
+                    }, 1000);
+                }
+            }
+
+            clearSelection() {
+                this.selectedCards = [];
+                document.querySelectorAll('.card.selected').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                this.updateDisplay();
+            }
+
+            // Card selection for human player
+            selectCard(card, cardElement) {
+                if (this.currentPlayer !== 0) return;
+
+                const index = this.selectedCards.indexOf(card);
+                if (index === -1) {
+                    this.selectedCards.push(card);
+                    cardElement.classList.add('selected');
+                } else {
+                    this.selectedCards.splice(index, 1);
+                    cardElement.classList.remove('selected');
+                }
+
+                this.updateDisplay();
+            }
+
+            // Show status message
+            showStatus(message) {
+                const statusEl = document.getElementById('status-message');
+                statusEl.textContent = message;
+                statusEl.classList.remove('hidden');
+            }
+
+            // Update display
+            updateDisplay() {
+                // Update hands
+                for (let p = 0; p < 4; p++) {
+                    const handEl = document.getElementById(`hand-${p}`);
+                    const countEl = document.getElementById(`count-${p}`);
+                    
+                    handEl.innerHTML = '';
+                    countEl.textContent = this.players[p].length;
+
+                    if (p === 0 || this.testMode) {
+                        // Human player or test mode - show actual cards
+                        for (const card of this.players[p]) {
+                            const cardEl = card.toElement();
+                            if (p === 0 && !this.testMode) {
+                                cardEl.addEventListener('click', () => this.selectCard(card, cardEl));
+                            }
+                            handEl.appendChild(cardEl);
+                        }
+                    } else {
+                        // AI players - show card backs
+                        for (let i = 0; i < this.players[p].length; i++) {
+                            const cardEl = document.createElement('div');
+                            cardEl.className = 'card card-back';
+                            cardEl.textContent = 'BIG2';
+                            handEl.appendChild(cardEl);
+                        }
+                    }
+                }
+
+                // Update player turn indicators
+                for (let p = 0; p < 4; p++) {
+                    const playerEl = document.getElementById(`player-${p}`);
+                    if (p === this.currentPlayer) {
+                        playerEl.classList.add('active');
+                    } else {
+                        playerEl.classList.remove('active');
+                    }
+                }
+
+                // Update selected cards display
+                const selectedEl = document.getElementById('selected-cards');
+                selectedEl.innerHTML = '';
+                
+                if (this.selectedCards.length > 0) {
+                    for (const card of this.selectedCards) {
+                        const cardEl = card.toElement();
+                        cardEl.style.transform = 'scale(0.8)';
+                        selectedEl.appendChild(cardEl);
+                    }
+                } else {
+                    const placeholderEl = document.createElement('div');
+                    placeholderEl.style.color = '#95a5a6';
+                    placeholderEl.textContent = 'Select cards to play';
+                    selectedEl.appendChild(placeholderEl);
+                }
+
+                // Update play area
+                const playAreaEl = document.getElementById('play-area');
+                playAreaEl.innerHTML = '';
+                
+                if (this.currentTrick.length > 0) {
+                    const lastPlay = this.currentTrick[this.currentTrick.length - 1];
+                    for (const card of lastPlay.cards) {
+                        playAreaEl.appendChild(card.toElement());
+                    }
+                } else {
+                    const placeholderEl = document.createElement('div');
+                    placeholderEl.style.color = '#95a5a6';
+                    placeholderEl.textContent = 'Current trick will appear here';
+                    playAreaEl.appendChild(placeholderEl);
+                }
+
+                // Update controls
+                const playBtn = document.getElementById('play-btn');
+                const passBtn = document.getElementById('pass-btn');
+                
+                if (this.currentPlayer === 0) {
+                    playBtn.disabled = this.selectedCards.length === 0 || !this.isValidPlay(this.selectedCards);
+                    passBtn.disabled = false;
+                } else {
+                    playBtn.disabled = true;
+                    passBtn.disabled = true;
+                }
+
+                // Update game info
+                document.getElementById('round-number').textContent = this.round;
+                document.getElementById('current-turn').textContent = this.getPlayerName(this.currentPlayer);
+
+                // Update last play info
+                const lastPlayEl = document.getElementById('last-play');
+                if (this.lastPlay && this.lastPlayType) {
+                    lastPlayEl.textContent = `Last: ${this.lastPlayType.type} (${this.lastPlay.length} cards)`;
+                } else {
+                    lastPlayEl.textContent = 'No cards played yet';
+                }
+
+                // Update combo info
+                const comboInfoEl = document.getElementById('combo-info');
+                if (this.selectedCards.length > 0) {
+                    const comboType = this.getCombinationType(this.selectedCards);
+                    if (comboType) {
+                        comboInfoEl.textContent = `Selected: ${comboType.type}`;
+                    } else {
+                        comboInfoEl.textContent = 'Invalid combination';
+                    }
+                } else {
+                    comboInfoEl.textContent = '';
+                }
+
+                // Update scores
+                for (let p = 0; p < 4; p++) {
+                    document.getElementById(`score-${p}`).textContent = this.scores[p];
+                }
+            }
+        }
+
+        // Initialize game
+        let game;
+        window.addEventListener('DOMContentLoaded', () => {
+            game = new BigTwoGame();
+        });
+
+        // Global function for modal
+        function startNewGame() {
+            game.startNewGame();
+        }
+    </script>
+</body>
+</html>

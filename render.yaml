@@ -1,0 +1,44 @@
+services:
+  # Backend API and WebSocket Server
+  - type: web
+    name: big2-multiplayer-server
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: CLIENT_URL
+        value: https://big2-multiplayer.onrender.com
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: MAX_PLAYERS_PER_GAME
+        value: 4
+      - key: GAME_TIMEOUT_MS
+        value: 300000
+      - key: PLAYER_TURN_TIMEOUT_MS
+        value: 60000
+    healthCheckPath: /health
+
+  # Optional: Static site for client (if deploying separately)
+  # - type: static
+  #   name: big2-multiplayer-client
+  #   buildCommand: cd client && npm install && npm run build
+  #   staticPublishPath: ./client/build
+  #   env Vars:
+  #     - key: REACT_APP_API_URL
+  #       value: https://big2-multiplayer-server.onrender.com
+
+databases:
+  # MongoDB - You'll need to set this up manually or use MongoDB Atlas
+  # and add the connection string to your environment variables
