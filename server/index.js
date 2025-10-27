@@ -70,10 +70,25 @@ app.use('/api/user', userRoutes);
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../client/build')));
+    const clientBuildPath = path.resolve(__dirname, '../client/build');
+    console.log('Looking for client build at:', clientBuildPath);
     
+    // Serve static files
+    app.use(express.static(clientBuildPath));
+    
+    // Catch-all route to serve index.html for client-side routing
     app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+        res.sendFile(path.join(clientBuildPath, 'index.html'), (err) => {
+            if (err) {
+                console.error('Error serving index.html:', err);
+                res.status(500).json({
+                    success: false,
+                    error: 'Failed to load application',
+                    details: err.message,
+                    buildPath: clientBuildPath
+                });
+            }
+        });
     });
 }
 
