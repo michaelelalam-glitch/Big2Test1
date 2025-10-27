@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Lobby.css';
 
-const API_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:5000';
+// In production, API is served from same domain. In dev, use localhost:3001
+const API_URL = process.env.REACT_APP_SERVER_URL || 
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
 
 function Lobby({ user, socket, onJoinGame, onLogout }) {
   const [games, setGames] = useState([]);

@@ -45,18 +45,23 @@ exports.register = async (req, res, next) => {
 // @route   POST /api/auth/login
 exports.login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const { username, email, password } = req.body;
 
-        // Validation
-        if (!email || !password) {
+        // Validation - accept either username or email
+        if ((!username && !email) || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide email and password'
+                message: 'Please provide username/email and password'
             });
         }
 
-        // Find user with password
-        const user = await User.findOne({ email }).select('+password');
+        // Find user by email or username
+        let user;
+        if (email) {
+            user = await User.findOne({ email }).select('+password');
+        } else if (username) {
+            user = await User.findOne({ username }).select('+password');
+        }
 
         if (!user) {
             return res.status(401).json({

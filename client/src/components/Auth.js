@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './Auth.css';
 
-const API_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:5000';
+// In production, API is served from same domain. In dev, use localhost:3001
+const API_URL = process.env.REACT_APP_SERVER_URL || 
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001');
 
 function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);

@@ -7,7 +7,9 @@ import Auth from './components/Auth';
 import Lobby from './components/Lobby';
 import Game from './components/Game';
 
-const SOCKET_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:5000';
+// In production, socket connects to same domain. In dev, use localhost:3001
+const SOCKET_URL = process.env.REACT_APP_SERVER_URL || 
+  (process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:3001');
 
 function App() {
   const [socket, setSocket] = useState(null);
